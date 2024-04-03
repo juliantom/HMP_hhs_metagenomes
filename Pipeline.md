@@ -1,11 +1,5 @@
-1. Check portal_client installation. HMP metagenomes are downloaded with *portal client* [https://github.com/IGS/portal_client].
-```bash
-# Check 'portal client is available'
-portal_client --version
-# Install with apt
-
-```
-2. Download **manifest** and **metadata** files from HMP website [https://portal.hmpdacc.org/]. <br>
+### Obtaining the necessary files
+1. Access the (HMP website)[https://portal.hmpdacc.org/] and download the **manifest** and **metadata** files. <br>
 Criteria (all sites):
     * Click on *Data*
     * On *Samples* TAB
@@ -16,34 +10,43 @@ Criteria (all sites):
     * Click *Add all files to the Cart*
     * Go to Cart (top right corner)
     * Download *File Manifest* and *Sample Metadata* locally.
-    * Copy this files to server and store them in a folder (*01-Original_files*).
 - Note: Human sequencing reads (data) have bee removed from the metagenomic samples prior to upload.
+2. Prepare working folder
 ```bash
-# Create a copy of manifest and metadata files
-
-# New names (variables)
-my_date=2023_07_07
-# folders
+# Create a working directory (mine looks as)
+my_date=$(date +'%Y_%m_%d')
+mkdir HMP_HHS_${my_date} && cd HMP_HHS_${my_date}
+```
+3. Edit manifest and metadata file
+```bash
+# Set variables
+my_date=2023_07_07 # date - should have the date the metadata and manifest files were downloaded
+# Folders
 dir_original=01-Orig_manifest_metadata
 dir_new_files=02-Edit_manifest_metadata
-# files
-original_manifest=hmp_manifest_35005f35fb.tsv
-original_metadata=hmp_manifest_metadata_a0061aaf77.tsv
+# Files
+original_manifest=hmp_manifest_35005f35fb.tsv # ajust as needed
+original_metadata=hmp_manifest_metadata_a0061aaf77.tsv # ajust as needed
 new_manifest="manifest-$my_date"
 new_metadata="metadata-$my_date"
 
-# Copy files and edit name
 mkdir $dir_new_files
+
+# Copy files from local to server 
+scp ~/Downloads/hmp_manifest_35005f35fb.tsv server_name@ip:/path/to/HMP_HHS_${my_date}/$dir_new_files
+scp ~/Downloads/hmp_manifest_metadata_a0061aaf77.tsv server_name@ip:/path/to/HMP_HHS_${my_date}/$dir_new_files
+
+# Copy files and edit name
 cp $dir_original/$original_manifest $dir_new_files/$new_manifest.tsv
 cp $dir_original/$original_metadata $dir_new_files/$new_metadata.tsv
 
-# Remove duplicated entries
+# Remove 454 sequencing entires and duplicated entries
+### Manifest
 grep -v '_454' $dir_new_files/$new_manifest.tsv | awk 'BEGIN{FS=OFS="\t"}NR==1{print $0}NR>1{print $0 | "sort | uniq "}' | sed -e 's/ /_/g' > $dir_new_files/$new_manifest-sort_unique.tsv
-
+### Metadata
 awk 'BEGIN{FS=OFS="\t"}NR==1{print $0}NR>1{print $0 | "sort | uniq "}' $dir_new_files/$new_metadata.tsv | sed -e 's/ /_/g' > $dir_new_files/$new_metadata-sort_unique.tsv
 ```
-
-3. Download metagenomes (subset of 50 metagenomes with most data - biggest file size - for external naris and feces)
+4. Download metagenomes (subset of 50 metagenomes with most data - biggest file size - for external naris and feces)
 ```bash
 # Copy file
 cp $dir_new_files/$new_manifest-sort_unique.tsv 98-DATA/02-dl_metag-temp_1.txt
